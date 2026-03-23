@@ -36,71 +36,50 @@ jobs:
 
       - name: Set up Android SDK
         run: |
-          # Создаем папку для SDK
           mkdir -p /opt/android-sdk/cmdline-tools
           cd /opt/android-sdk/cmdline-tools
-          
-          # Скачиваем command line tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q commandlinetools-linux-9477386_latest.zip
           rm commandlinetools-linux-9477386_latest.zip
-          
-          # Перемещаем в правильную структуру
           mv cmdline-tools latest
-          
-          # Устанавливаем пути
           export ANDROID_SDK_ROOT=/opt/android-sdk
           export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
-          
-          # Принимаем лицензии
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
-          
-          # Устанавливаем нужные компоненты
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" > /dev/null 2>&1
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-31" > /dev/null 2>&1
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;30.0.3" > /dev/null 2>&1
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;31.0.0" > /dev/null 2>&1
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.0" > /dev/null 2>&1
-          
           echo "ANDROID_SDK_ROOT=/opt/android-sdk" >> $GITHUB_ENV
           echo "PATH=$PATH" >> $GITHUB_ENV
-          
-          # Создаем ссылку для Buildozer
           mkdir -p /home/runner/.buildozer/android/platform
           ln -sf /opt/android-sdk /home/runner/.buildozer/android/platform/android-sdk
-          
-          # Проверяем наличие aidl
-          echo "Проверка AIDL:"
-          find /opt/android-sdk -name "aidl" -type f 2>/dev/null || echo "AIDL не найден"
 
       - name: Create buildozer.spec
         run: |
-          cat > buildozer.spec << 'EOF'
-[app]
-title = TG WS Proxy
-package.name = tgwsproxy
-package.domain = com.tgwsproxy
-source.dir = .
-source.include_exts = py
-version = 1.0.0
-requirements = python3,aiohttp,pycryptodome,websockets
-orientation = portrait
-fullscreen = 0
-android.permissions = INTERNET, FOREGROUND_SERVICE
-android.api = 31
-android.minapi = 26
-android.ndk = 23b
-
-[buildozer]
-log_level = 2
-warn_on_root = 1
-build_dir = ./.buildozer
-bin_dir = ./bin
-android.accept_sdk_license = True
-android.archs = arm64-v8a
-android.sdk_path = /opt/android-sdk
-android.ndk_path = /home/runner/.buildozer/android/platform/android-ndk-r23b
-EOF
+          echo '[app]' > buildozer.spec
+          echo 'title = TG WS Proxy' >> buildozer.spec
+          echo 'package.name = tgwsproxy' >> buildozer.spec
+          echo 'package.domain = com.tgwsproxy' >> buildozer.spec
+          echo 'source.dir = .' >> buildozer.spec
+          echo 'source.include_exts = py' >> buildozer.spec
+          echo 'version = 1.0.0' >> buildozer.spec
+          echo 'requirements = python3,aiohttp,pycryptodome,websockets' >> buildozer.spec
+          echo 'orientation = portrait' >> buildozer.spec
+          echo 'fullscreen = 0' >> buildozer.spec
+          echo 'android.permissions = INTERNET, FOREGROUND_SERVICE' >> buildozer.spec
+          echo 'android.api = 31' >> buildozer.spec
+          echo 'android.minapi = 26' >> buildozer.spec
+          echo 'android.ndk = 23b' >> buildozer.spec
+          echo '' >> buildozer.spec
+          echo '[buildozer]' >> buildozer.spec
+          echo 'log_level = 2' >> buildozer.spec
+          echo 'warn_on_root = 1' >> buildozer.spec
+          echo 'build_dir = ./.buildozer' >> buildozer.spec
+          echo 'bin_dir = ./bin' >> buildozer.spec
+          echo 'android.accept_sdk_license = True' >> buildozer.spec
+          echo 'android.archs = arm64-v8a' >> buildozer.spec
+          echo 'android.sdk_path = /opt/android-sdk' >> buildozer.spec
 
       - name: Download NDK
         run: |
