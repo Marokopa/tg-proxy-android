@@ -36,24 +36,46 @@ jobs:
 
       - name: Set up Android SDK
         run: |
+          # Создаем папку для SDK
           mkdir -p /opt/android-sdk/cmdline-tools
           cd /opt/android-sdk/cmdline-tools
+          
+          # Скачиваем command line tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q commandlinetools-linux-9477386_latest.zip
           rm commandlinetools-linux-9477386_latest.zip
+          
+          # Перемещаем в правильную структуру (для sdkmanager)
           mv cmdline-tools latest
+          
+          # Устанавливаем переменные окружения
           export ANDROID_SDK_ROOT=/opt/android-sdk
           export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+          
+          # Принимаем лицензии
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+          
+          # Устанавливаем компоненты
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" > /dev/null 2>&1
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-31" > /dev/null 2>&1
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;30.0.3" > /dev/null 2>&1
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;31.0.0" > /dev/null 2>&1
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.0" > /dev/null 2>&1
+          
+          # Сохраняем переменные для следующих шагов
           echo "ANDROID_SDK_ROOT=/opt/android-sdk" >> $GITHUB_ENV
           echo "PATH=$PATH" >> $GITHUB_ENV
+          
+          # Создаем ссылку в том месте, где Buildozer ожидает найти SDK
           mkdir -p /home/runner/.buildozer/android/platform
           ln -sf /opt/android-sdk /home/runner/.buildozer/android/platform/android-sdk
+          
+          # Проверяем, что sdkmanager доступен
+          echo "Проверка sdkmanager:"
+          ls -la /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager
+          
+          # Создаем symlink для tools/bin (как ожидает Buildozer)
+          mkdir -p /opt/android-sdk/tools/bin
+          ln -sf /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager /opt/android-sdk/tools/bin/sdkmanager
+          ln -sf /opt/android-sdk/cmdline-tools/latest/bin/avdmanager /opt/android-sdk/tools/bin/avdmanager
 
       - name: Create buildozer.spec
         run: |
@@ -92,7 +114,13 @@ jobs:
       - name: Build APK
         run: |
           export ANDROID_SDK_ROOT=/opt/android-sdk
-          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+          export PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/opt/android-sdk/tools/bin
+          echo "=== Проверка окружения ==="
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "Путь к sdkmanager:"
+          which sdkmanager || echo "sdkmanager не в PATH"
+          ls -la /opt/android-sdk/tools/bin/sdkmanager || echo "symlink не создан"
+          echo "=== Запуск сборки ==="
           buildozer android debug
 
       - name: Upload APK
