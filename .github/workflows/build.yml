@@ -37,27 +37,33 @@ jobs:
       - name: Set up Android SDK
         run: |
           # Создаем папку для SDK
-          mkdir -p /opt/android-sdk
-          cd /opt/android-sdk
+          mkdir -p /opt/android-sdk/cmdline-tools
+          cd /opt/android-sdk/cmdline-tools
           
           # Скачиваем command line tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q commandlinetools-linux-9477386_latest.zip
           rm commandlinetools-linux-9477386_latest.zip
           
+          # Перемещаем в правильную структуру (нужно в папку latest)
+          mv cmdline-tools latest
+          
           # Устанавливаем пути
           export ANDROID_SDK_ROOT=/opt/android-sdk
-          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/bin:$ANDROID_SDK_ROOT/platform-tools
+          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
           
-          # Принимаем лицензии
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          # Принимаем лицензии (игнорируем ошибки)
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
           
-          # Устанавливаем нужные компоненты (включая AIDL)
-          sdkmanager "platform-tools" "platforms;android-31" "build-tools;30.0.3"
-          sdkmanager "build-tools;31.0.0"
+          # Устанавливаем нужные компоненты
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-31" "build-tools;30.0.3" > /dev/null 2>&1 || true
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;31.0.0" > /dev/null 2>&1 || true
           
           echo "ANDROID_SDK_ROOT=/opt/android-sdk" >> $GITHUB_ENV
           echo "PATH=$PATH" >> $GITHUB_ENV
+          
+          # Проверяем установку
+          ls -la $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/
 
       - name: Create buildozer.spec
         run: |
@@ -88,7 +94,7 @@ jobs:
       - name: Build APK
         run: |
           export ANDROID_SDK_ROOT=/opt/android-sdk
-          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/bin:$ANDROID_SDK_ROOT/platform-tools
+          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
           buildozer android debug
 
       - name: Upload APK
