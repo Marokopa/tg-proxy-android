@@ -45,7 +45,7 @@ jobs:
           unzip -q commandlinetools-linux-9477386_latest.zip
           rm commandlinetools-linux-9477386_latest.zip
           
-          # Перемещаем в правильную структуру (для sdkmanager)
+          # Перемещаем в правильную структуру
           mv cmdline-tools latest
           
           # Устанавливаем переменные окружения
@@ -60,22 +60,26 @@ jobs:
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-31" > /dev/null 2>&1
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;30.0.3" > /dev/null 2>&1
           
-          # Сохраняем переменные для следующих шагов
+          # Сохраняем переменные
           echo "ANDROID_SDK_ROOT=/opt/android-sdk" >> $GITHUB_ENV
           echo "PATH=$PATH" >> $GITHUB_ENV
           
-          # Создаем ссылку в том месте, где Buildozer ожидает найти SDK
+          # Создаем ссылку для Buildozer
           mkdir -p /home/runner/.buildozer/android/platform
           ln -sf /opt/android-sdk /home/runner/.buildozer/android/platform/android-sdk
           
-          # Проверяем, что sdkmanager доступен
-          echo "Проверка sdkmanager:"
-          ls -la /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager
-          
-          # Создаем symlink для tools/bin (как ожидает Buildozer)
+          # Создаем symlink для tools/bin
           mkdir -p /opt/android-sdk/tools/bin
           ln -sf /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager /opt/android-sdk/tools/bin/sdkmanager
-          ln -sf /opt/android-sdk/cmdline-tools/latest/bin/avdmanager /opt/android-sdk/tools/bin/avdmanager
+
+      - name: Download NDK 25b
+        run: |
+          mkdir -p /home/runner/.buildozer/android/platform
+          cd /home/runner/.buildozer/android/platform
+          wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+          unzip -q android-ndk-r25b-linux.zip
+          rm android-ndk-r25b-linux.zip
+          echo "ANDROIDNDK=/home/runner/.buildozer/android/platform/android-ndk-r25b" >> $GITHUB_ENV
 
       - name: Create buildozer.spec
         run: |
@@ -92,7 +96,7 @@ jobs:
           echo 'android.permissions = INTERNET, FOREGROUND_SERVICE' >> buildozer.spec
           echo 'android.api = 31' >> buildozer.spec
           echo 'android.minapi = 26' >> buildozer.spec
-          echo 'android.ndk = 23b' >> buildozer.spec
+          echo 'android.ndk = 25b' >> buildozer.spec
           echo '' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
@@ -103,24 +107,11 @@ jobs:
           echo 'android.archs = arm64-v8a' >> buildozer.spec
           echo 'android.sdk_path = /opt/android-sdk' >> buildozer.spec
 
-      - name: Download NDK
-        run: |
-          mkdir -p /home/runner/.buildozer/android/platform
-          cd /home/runner/.buildozer/android/platform
-          wget -q https://dl.google.com/android/repository/android-ndk-r23b-linux.zip
-          unzip -q android-ndk-r23b-linux.zip
-          rm android-ndk-r23b-linux.zip
-
       - name: Build APK
         run: |
           export ANDROID_SDK_ROOT=/opt/android-sdk
+          export ANDROIDNDK=/home/runner/.buildozer/android/platform/android-ndk-r25b
           export PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/opt/android-sdk/tools/bin
-          echo "=== Проверка окружения ==="
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          echo "Путь к sdkmanager:"
-          which sdkmanager || echo "sdkmanager не в PATH"
-          ls -la /opt/android-sdk/tools/bin/sdkmanager || echo "symlink не создан"
-          echo "=== Запуск сборки ==="
           buildozer android debug
 
       - name: Upload APK
