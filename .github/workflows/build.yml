@@ -9,7 +9,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -30,7 +31,7 @@ jobs:
 
       - name: Create buildozer.spec
         run: |
-          cat > buildozer.spec << "SPEC"
+          cat > buildozer.spec << 'SPEC'
 [app]
 title = TG WS Proxy
 package.name = tgwsproxy
